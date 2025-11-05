@@ -52,6 +52,29 @@ def start_scraping():
     
     return jsonify({'message': 'Scraping started successfully'})
 
+@app.route('/api/test')
+def test_chrome():
+    """Test Chrome and Selenium setup"""
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        
+        chrome_options = Options()
+        chrome_options.add_argument('--headless=new')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        
+        # Test Chrome
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.get('https://www.google.com')
+        title = driver.title
+        driver.quit()
+        
+        return jsonify({'status': 'success', 'message': f'Chrome working! Page title: {title}'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Chrome test failed: {str(e)}'})
+
 @app.route('/api/download/<file_type>')
 def download_results(file_type):
     if file_type == 'csv':
@@ -75,22 +98,66 @@ def run_scraper():
     scraper_status['errors'] = []
     
     try:
-        # Run the main scraper
-        result = subprocess.run(['python3', 'main.py'], 
-                              capture_output=True, text=True)
+        # Import scraper modules
+        import sys
+        sys.path.append('.')
         
-        if result.returncode == 0:
-            # Count scraped profiles
-            csv_path = 'data/output/linkedin_profiles_authenticated.csv'
-            if os.path.exists(csv_path):
-                import pandas as pd
-                df = pd.read_csv(csv_path)
-                scraper_status['profiles_scraped'] = len(df)
+        from scrapers.linkedin_scraper import LinkedInScraper
+        from scrapers.utils import load_config, setup_logging, load_environment
+        
+        # Load environment and check credentials
+        load_environment()
+        email = os.getenv('LINKEDIN_EMAIL')
+        password = os.getenv('LINKEDIN_PASSWORD')
+        
+        if not email or not password or email == 'your_email@example.com':
+            scraper_status['errors'].append("LinkedIn credentials not configured. Please set LINKEDIN_EMAIL and LINKEDIN_PASSWORD environment variables in Railway dashboard.")
+            return
+        
+        scraper_status['errors'].append(f"Using credentials for: {email}")
+        
+        # Load URLs from file
+        urls_file = 'data/profile_urls.txt'
+        if not os.path.exists(urls_file):
+            scraper_status['errors'].append("No profile_urls.txt file found")
+            return
+            
+        with open(urls_file, 'r') as f:
+            urls = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+        
+        if not urls:
+            scraper_status['errors'].append("No valid URLs found in profile_urls.txt")
+            return
+        
+        scraper_status['errors'].append(f"Found {len(urls)} URLs to scrape")
+        
+        # Setup scraper
+        logger = setup_logging()
+        config = load_config()
+        config['linkedin']['auto_login'] = True
+        
+        scraper = LinkedInScraper(config)
+        
+        # Run scraping
+        scraper_status['errors'].append("Starting scraper...")
+        profiles = scraper.scrape_profiles(urls)
+        
+        if profiles:
+            # Save to standard filename
+            output_file = 'data/output/linkedin_profiles_authenticated.csv'
+            scraper.save_to_csv(profiles, output_file)
+            
+            scraper_status['profiles_scraped'] = len(profiles)
+            scraper_status['errors'].append(f"Successfully scraped {len(profiles)} profiles")
         else:
-            scraper_status['errors'].append(result.stderr)
+            scraper_status['errors'].append("No profiles were scraped - check LinkedIn credentials and URLs")
+        
+        scraper.cleanup()
             
     except Exception as e:
-        scraper_status['errors'].append(str(e))
+        scraper_status['errors'].append(f"Scraper error: {str(e)}")
+        import traceback
+        scraper_status['errors'].append(f"Traceback: {traceback.format_exc()}")
     
     finally:
         scraper_status['running'] = False
@@ -141,6 +208,7 @@ html_template = '''<!DOCTYPE html>
 https://www.linkedin.com/in/profile1/
 https://www.linkedin.com/in/profile2/"></textarea>
             <br>
+            <button onclick="testChrome()" id="testBtn">Test Chrome Setup</button>
             <button onclick="startScraping()" id="startBtn">Start Scraping</button>
         </div>
         
@@ -203,6 +271,18 @@ https://www.linkedin.com/in/profile2/"></textarea>
                     alert('Scraping started! Check status for updates.');
                 }
             });
+        }
+        
+        function testChrome() {
+            fetch('/api/test')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('✅ ' + data.message);
+                    } else {
+                        alert('❌ ' + data.message);
+                    }
+                });
         }
         
         function downloadFile(type) {
