@@ -1,6 +1,7 @@
 {
   "build": {
-    "builder": "nixpacks"
+    "builder": "nixpacks",
+    "buildCommand": "chmod +x build.sh && ./build.sh"
   },
   "deploy": {
     "startCommand": "gunicorn --bind 0.0.0.0:$PORT web_app:app",

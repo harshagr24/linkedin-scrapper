@@ -1,0 +1,5 @@
+wget
+gnupg
+software-properties-common
+google-chrome-stable
+xvfb

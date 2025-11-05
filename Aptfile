@@ -1,0 +1,4 @@
+wget
+gnupg
+software-properties-common
+xvfb

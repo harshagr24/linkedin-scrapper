@@ -18,6 +18,7 @@ try:
     UC_AVAILABLE = True
 except ImportError:
     UC_AVAILABLE = False
+    uc = None
     print("Warning: undetected_chromedriver not available, using regular selenium")
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -41,8 +42,8 @@ class LinkedInScraper:
         """Setup Chrome driver with anti-detection measures and server compatibility."""
         try:
             # Try undetected Chrome first (if available)
-            if UC_AVAILABLE:
-                try:
+            try:
+                if UC_AVAILABLE and uc is not None:
                     chrome_options = uc.ChromeOptions()
                     
                     # Basic options
@@ -83,14 +84,15 @@ class LinkedInScraper:
                     self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
                     
                     self.logger.info("Undetected Chrome driver initialized successfully")
+                    return  # Success, exit here
+                else:
+                    raise ImportError("Undetected Chrome not available")
                     
-                except Exception as uc_error:
-                    self.logger.warning(f"Undetected Chrome failed: {uc_error}")
-                    self.logger.info("Falling back to regular Selenium Chrome driver...")
-                    UC_AVAILABLE = False  # Disable for this session
+            except Exception as uc_error:
+                self.logger.warning(f"Undetected Chrome failed: {uc_error}")
+                self.logger.info("Falling back to regular Selenium Chrome driver...")
             
-            # Use regular Selenium if undetected chrome not available or failed
-            if not UC_AVAILABLE:
+            # Fallback to regular Selenium
                 
                 # Fallback to regular Selenium
                 chrome_options = Options()
