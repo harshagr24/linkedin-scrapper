@@ -13,7 +13,12 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
-import undetected_chromedriver as uc
+try:
+    import undetected_chromedriver as uc
+    UC_AVAILABLE = True
+except ImportError:
+    UC_AVAILABLE = False
+    print("Warning: undetected_chromedriver not available, using regular selenium")
 from bs4 import BeautifulSoup
 import pandas as pd
 
@@ -35,52 +40,57 @@ class LinkedInScraper:
     def setup_driver(self):
         """Setup Chrome driver with anti-detection measures and server compatibility."""
         try:
-            # Try undetected Chrome first
-            try:
-                chrome_options = uc.ChromeOptions()
-                
-                # Basic options
-                if self.config.get('browser', {}).get('headless', False):
-                    chrome_options.add_argument('--headless=new')
-                
-                # Server compatibility options
-                chrome_options.add_argument('--no-sandbox')
-                chrome_options.add_argument('--disable-dev-shm-usage')
-                chrome_options.add_argument('--disable-gpu')
-                chrome_options.add_argument('--disable-extensions')
-                chrome_options.add_argument('--disable-plugins')
-                chrome_options.add_argument('--disable-images')
-                chrome_options.add_argument('--remote-debugging-port=9222')
-                chrome_options.add_argument('--single-process')
-                
-                # Anti-detection options
-                chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-                
-                # Window size
-                window_size = self.config.get('browser', {}).get('window_size', [1920, 1080])
-                chrome_options.add_argument(f'--window-size={window_size[0]},{window_size[1]}')
-                
-                # User data directory for persistence
-                user_data_dir = self.config.get('browser', {}).get('user_data_dir')
-                if user_data_dir:
-                    chrome_options.add_argument(f'--user-data-dir={user_data_dir}')
-                
-                # Proxy configuration
-                proxy_config = self.config.get('proxies', {})
-                if proxy_config.get('enabled') and proxy_config.get('proxy_list'):
-                    proxy = proxy_config['proxy_list'][0]  # Use first proxy for now
-                    chrome_options.add_argument(f'--proxy-server={proxy}')
-                
-                self.driver = uc.Chrome(options=chrome_options, version_main=None)
-                
-                # Execute script to hide webdriver property
-                self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-                
-                self.logger.info("Undetected Chrome driver initialized successfully")
-                
-            except Exception as uc_error:
-                self.logger.warning(f"Undetected Chrome failed: {uc_error}")
-                self.logger.info("Falling back to regular Selenium Chrome driver...")
+            # Try undetected Chrome first (if available)
+            if UC_AVAILABLE:
+                try:
+                    chrome_options = uc.ChromeOptions()
+                    
+                    # Basic options
+                    if self.config.get('browser', {}).get('headless', False):
+                        chrome_options.add_argument('--headless=new')
+                    
+                    # Server compatibility options
+                    chrome_options.add_argument('--no-sandbox')
+                    chrome_options.add_argument('--disable-dev-shm-usage')
+                    chrome_options.add_argument('--disable-gpu')
+                    chrome_options.add_argument('--disable-extensions')
+                    chrome_options.add_argument('--disable-plugins')
+                    chrome_options.add_argument('--disable-images')
+                    chrome_options.add_argument('--remote-debugging-port=9222')
+                    chrome_options.add_argument('--single-process')
+                    
+                    # Anti-detection options
+                    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+                    
+                    # Window size
+                    window_size = self.config.get('browser', {}).get('window_size', [1920, 1080])
+                    chrome_options.add_argument(f'--window-size={window_size[0]},{window_size[1]}')
+                    
+                    # User data directory for persistence
+                    user_data_dir = self.config.get('browser', {}).get('user_data_dir')
+                    if user_data_dir:
+                        chrome_options.add_argument(f'--user-data-dir={user_data_dir}')
+                    
+                    # Proxy configuration
+                    proxy_config = self.config.get('proxies', {})
+                    if proxy_config.get('enabled') and proxy_config.get('proxy_list'):
+                        proxy = proxy_config['proxy_list'][0]  # Use first proxy for now
+                        chrome_options.add_argument(f'--proxy-server={proxy}')
+                    
+                    self.driver = uc.Chrome(options=chrome_options, version_main=None)
+                    
+                    # Execute script to hide webdriver property
+                    self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                    
+                    self.logger.info("Undetected Chrome driver initialized successfully")
+                    
+                except Exception as uc_error:
+                    self.logger.warning(f"Undetected Chrome failed: {uc_error}")
+                    self.logger.info("Falling back to regular Selenium Chrome driver...")
+                    UC_AVAILABLE = False  # Disable for this session
+            
+            # Use regular Selenium if undetected chrome not available or failed
+            if not UC_AVAILABLE:
                 
                 # Fallback to regular Selenium
                 chrome_options = Options()
