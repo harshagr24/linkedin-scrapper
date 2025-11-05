@@ -95,17 +95,17 @@ def run_scraper():
     finally:
         scraper_status['running'] = False
 
-if __name__ == '__main__':
-    # Create required directories
-    os.makedirs('data/output', exist_ok=True)
-    os.makedirs('templates', exist_ok=True)
-    
-    # Create default profile URLs if not exists
-    if not os.path.exists('data/profile_urls.txt'):
-        with open('data/profile_urls.txt', 'w') as f:
-            f.write('https://www.linkedin.com/in/sample-profile/\n')
-    
-    html_template = '''<!DOCTYPE html>
+# Initialize directories and templates on module load
+os.makedirs('data/output', exist_ok=True)
+os.makedirs('templates', exist_ok=True)
+
+# Create default profile URLs if not exists
+if not os.path.exists('data/profile_urls.txt'):
+    with open('data/profile_urls.txt', 'w') as f:
+        f.write('https://www.linkedin.com/in/sample-profile/\n')
+
+# Create HTML template
+html_template = '''<!DOCTYPE html>
 <html>
 <head>
     <title>LinkedIn Scraper Control Panel</title>
@@ -216,9 +216,11 @@ https://www.linkedin.com/in/profile2/"></textarea>
 </body>
 </html>'''
     
-    with open('templates/index.html', 'w') as f:
-        f.write(html_template)
-    
+# Write HTML template to file
+with open('templates/index.html', 'w') as f:
+    f.write(html_template)
+
+if __name__ == '__main__':
     print("🚀 LinkedIn Scraper Web Interface starting...")
     
     # Get port from environment (Railway sets this)
