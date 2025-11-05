@@ -1,0 +1,29 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Scraped data
+data/output/*
+!data/output/.gitkeep
+
+# Logs
+*.log
+scraper.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Chrome driver cache
+.wdm/

@@ -1,0 +1,21 @@
+{
+  "scraping": {
+    "delay_between_requests": 4,
+    "max_retries": 3,
+    "timeout": 30
+  },
+  "browser": {
+    "headless": false,
+    "window_size": [1920, 1080]
+  },
+  "output": {
+    "format": "csv",
+    "include_timestamp": true
+  },
+  "linkedin": {
+    "auto_login": true
+  },
+  "rate_limiting": {
+    "requests_per_minute": 8
+  }
+}

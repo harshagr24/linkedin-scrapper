@@ -1,0 +1,8 @@
+# LinkedIn Profile URLs to Scrape
+# Add one URL per line
+# Lines starting with # are comments
+
+https://www.linkedin.com/in/satyanadella/
+https://www.linkedin.com/in/jeffweiner08/
+https://www.linkedin.com/in/archit-anand95/
+https://www.linkedin.com/in/ankita-i-n-2192b718b/
