@@ -1,7 +1,3 @@
-"""
-LinkedIn Profile Scraper
-Simple tool for extracting LinkedIn profile data
-"""
 
 import os
 import sys
@@ -17,7 +13,7 @@ from scrapers.utils import load_config, setup_logging, load_environment
 
 def main():
     """Main scraper application."""
-    print("🔗 LinkedIn Profile Scraper")
+    print(" LinkedIn Profile Scraper")
     print("=" * 40)
     
     # Load environment variables

@@ -62,15 +62,21 @@ class LinkedInScraper:
                     
                     # Anti-detection options
                     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+                    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+                    chrome_options.add_experimental_option('useAutomationExtension', False)
+                    
+                    # Session persistence and stability
+                    chrome_options.add_argument('--disable-background-timer-throttling')
+                    chrome_options.add_argument('--disable-renderer-backgrounding')
+                    chrome_options.add_argument('--disable-backgrounding-occluded-windows')
                     
                     # Window size
                     window_size = self.config.get('browser', {}).get('window_size', [1920, 1080])
                     chrome_options.add_argument(f'--window-size={window_size[0]},{window_size[1]}')
                     
-                    # User data directory for persistence
-                    user_data_dir = self.config.get('browser', {}).get('user_data_dir')
-                    if user_data_dir:
-                        chrome_options.add_argument(f'--user-data-dir={user_data_dir}')
+                    # User data directory for session persistence
+                    chrome_options.add_argument('--user-data-dir=./chrome_profile')
+                    chrome_options.add_argument('--profile-directory=Default')
                     
                     # Proxy configuration
                     proxy_config = self.config.get('proxies', {})
@@ -166,15 +172,49 @@ class LinkedInScraper:
             random_delay(1, 2)
             login_button.click()
             
-            # Wait for successful login or handle challenges
+            # Wait for page to load after login attempt
             time.sleep(5)
             
-            # Check if we're logged in
-            if "feed" in self.driver.current_url or "in/" in self.driver.current_url:
-                self.logger.info("Successfully logged into LinkedIn")
+            # Check current URL to determine login status
+            current_url = self.driver.current_url.lower()
+            
+            # Handle different post-login scenarios
+            if any(keyword in current_url for keyword in ["feed", "mynetwork", "in/"]):
+                self.logger.info("✅ Successfully logged into LinkedIn")
                 return True
+            elif any(keyword in current_url for keyword in ["challenge", "checkpoint", "verify"]):
+                print("\n🔐 LinkedIn requires additional verification (2FA/Email)")
+                print("📱 Please complete verification in the browser window")
+                print("⏰ You have 60 seconds to complete verification...")
+                print("   - Check your email for verification code")
+                print("   - Or approve the login on your mobile app")
+                print("   - The scraper will wait for you to complete this")
+                
+                # Wait up to 60 seconds for user to complete verification
+                max_wait_time = 60
+                wait_interval = 2
+                
+                for i in range(0, max_wait_time, wait_interval):
+                    time.sleep(wait_interval)
+                    current_url = self.driver.current_url.lower()
+                    
+                    # Check if verification was successful
+                    if any(keyword in current_url for keyword in ["feed", "mynetwork", "in/"]):
+                        print("✅ Verification completed successfully!")
+                        self.logger.info("Login successful after verification")
+                        return True
+                    
+                    # Show countdown
+                    remaining = max_wait_time - i - wait_interval
+                    if remaining > 0 and remaining % 10 == 0:
+                        print(f"⏳ {remaining} seconds remaining...")
+                
+                print("❌ Verification timeout. Please try again.")
+                self.logger.warning("Login verification timed out")
+                return False
             else:
-                self.logger.warning("Login may have failed or requires additional verification")
+                print("❌ Login failed. Please check your credentials.")
+                self.logger.warning("Login may have failed - unexpected URL: " + current_url)
                 return False
                 
         except Exception as e:
