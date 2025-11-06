@@ -1,10 +1,6 @@
-#!/usr/bin/env python3
 """
 LinkedIn Profile Scraper
-A simple tool for extracting LinkedIn profile data for networking research.
-
-Author: Harsh
-Created: 2025
+Simple tool for extracting LinkedIn profile data
 """
 
 import os
